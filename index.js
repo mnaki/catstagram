@@ -45,14 +45,15 @@ const defaultAppState = Immutable.from({
 const appReducer = (state = defaultAppState, action) => {
     switch (action.type) {
         case 'FETCH_GIFS': {
-            if (action.isFetching)
-                return state.set('isFetching', action.isFetching)
-            return (
-                state
-                .set('isFetching', action.isFetching)
-                .set('gifList', gifListReducer(state.gifList, action))
-                .set('offset', state.offset + 3)
-            )
+            if (action.isFetching) {
+                return state.merge({isFetching: action.isFetching})
+            } else {
+                return state.merge({
+                    isFetching: action.isFetching,
+                    gifList: gifListReducer(state.gifList, action),
+                    offset: state.offset + 3
+                })
+            }
         }
         default: {
             return state.set('gifList', gifListReducer(state.gifList, action))
@@ -63,7 +64,6 @@ const appReducer = (state = defaultAppState, action) => {
 let store = redux.createStore(appReducer)
 
 const gifFetch = (params) => {
-    console.log('params = ' + JSON.stringify(params))
     store.dispatch({
         type: 'FETCH_GIFS',
         isFetching: true,
@@ -75,33 +75,70 @@ const gifFetch = (params) => {
             store.dispatch({
                 type: 'FETCH_GIFS',
                 isFetching: false,
-                data: Immutable.from(res.data.data) 
+                data: Immutable.from(res.data.data)
             })
-        }, 500)
+        }, 0)
     })
 }
 
 console.log(store.getState())
 
-const fetch = () =>
-    gifFetch({
-        api_key: apiKey,
-        limit: 3,
-        offset: store.getState().offset,
-        q: 'lovely cat'
-    })
-
-console.log(store.getState())
-
-const App = (props) => {
-    return React.createElement(
-        'div',
-        {},
-        React.createElement('button', {onClick: fetch}, 'Fetch moaar'),
-        props.store.isFetching ? React.createElement('h2', {}, 'Loading love') : '',
-        props.store.gifList.length > 0 ? props.store.gifList.map(gif => React.createElement('video', {key: gif.id, autoPlay: true, loop: true, width: 200, src: `https://media.giphy.com/media/${gif.id}/giphy.mp4`})) : ''
-        
+Spinner = (props) =>
+    React.createElement('div', {className: `spinner animated ${props.isLoading ? 'bounceIn' : 'bounceOut'}`},
+        React.createElement('div', {className: 'rect1'}),
+        React.createElement('div', {className: 'rect2'}),
+        React.createElement('div', {className: 'rect3'}),
+        React.createElement('div', {className: 'rect4'}),
+        React.createElement('div', {className: 'rect5'})
     )
+
+class App extends React.Component {
+
+    fetchGifs() {
+        return gifFetch({
+            api_key: apiKey,
+            limit: 3,
+            offset: store.getState().offset,
+            q: 'cat lsd'
+        })
+    }
+
+    componentDidMount() {
+        this.fetchGifs()
+    }
+
+    handleSubmit() {
+        this.fetchGifs()
+    }
+
+    handleChange() {
+        store.dispatch({
+            type: 'RESET_OFFSET'
+        })
+    }
+
+    render() {
+        return React.createElement(
+            'div',
+            {},
+            React.createElement('form', {onChange: () => handleChange(), onSubmit: () => handleSubmit()},
+                React.createElement('input', {type: 'text', ref: node => this.input = node}),
+                React.createElement('button', {type: 'submit'}, 'Fetch moaar')
+            ),
+            this.props.store.gifList.length > 0 && React.createElement('div', {className: 'masonry'}, this.props.store.gifList.map((gif, i) =>
+                React.createElement('div', {
+                    key: gif.id,
+                    className: 'item animated flipInY',
+                    style: {
+                        WebkitAnimationDelay: `${(3+i-this.props.store.offset)/2}s`,
+                        WebkitAnimationDuration: '1.0s'
+                    }
+                }, React.createElement('video', {autoPlay: true, loop: true, height: '200px', src: `https://media.giphy.com/media/${gif.id}/giphy.mp4`}))
+            )),
+            React.createElement(Spinner, {isLoading: this.props.store.isFetching})
+        )
+    }
+
 }
 
 render = () => {
