@@ -99,7 +99,7 @@ const App = (props) => {
         {},
         React.createElement('button', {onClick: fetch}, 'Fetch moaar'),
         props.store.isFetching ? React.createElement('h2', {}, 'Loading love') : '',
-        props.store.gifList.length > 0 ? props.store.gifList.map(gif => React.createElement('iframe', {key: gif.id, src: gif.embed_url})) : ''
+        props.store.gifList.length > 0 ? props.store.gifList.map(gif => React.createElement('video', {key: gif.id, autoPlay: true, loop: true, width: 200, src: `https://media.giphy.com/media/${gif.id}/giphy.mp4`})) : ''
         
     )
 }
